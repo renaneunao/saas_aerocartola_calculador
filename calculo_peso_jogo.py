@@ -282,7 +282,7 @@ def calculate_peso_jogo_for_profile(conn, rodada_atual, perfil, usar_provaveis_c
         if updates:
             # Primeiro, deletar registros antigos do perfil para esta rodada
             cursor.execute('''
-                DELETE FROM peso_jogo_perfis 
+                DELETE FROM acp_peso_jogo_perfis 
                 WHERE perfil_id = %s AND rodada_atual = %s
             ''', (perfil_id, rodada_atual))
             
@@ -295,7 +295,7 @@ def calculate_peso_jogo_for_profile(conn, rodada_atual, perfil, usar_provaveis_c
             execute_values(
                 cursor,
                 '''
-                INSERT INTO peso_jogo_perfis (perfil_id, rodada_atual, clube_id, peso_jogo, ultimas_partidas)
+                INSERT INTO acp_peso_jogo_perfis (perfil_id, rodada_atual, clube_id, peso_jogo, ultimas_partidas)
                 VALUES %s
                 ON CONFLICT (perfil_id, rodada_atual, clube_id) 
                 DO UPDATE SET peso_jogo = EXCLUDED.peso_jogo, created_at = NOW()

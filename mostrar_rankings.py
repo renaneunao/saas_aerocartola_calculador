@@ -20,7 +20,7 @@ def mostrar_ranking_peso_jogo(conn, rodada_atual, perfil_id):
                 p.clube_visitante_id,
                 c1.nome_fantasia as casa_nome,
                 c2.nome_fantasia as visitante_nome
-            FROM peso_jogo_perfis pj
+            FROM acp_peso_jogo_perfis pj
             JOIN clubes c ON pj.clube_id = c.id
             JOIN partidas p ON (
                 (p.clube_casa_id = pj.clube_id OR p.clube_visitante_id = pj.clube_id)
@@ -114,7 +114,7 @@ def mostrar_ranking_peso_sg(conn, rodada_atual, perfil_id):
                 p.clube_visitante_id,
                 c1.nome_fantasia as casa_nome,
                 c2.nome_fantasia as visitante_nome
-            FROM peso_sg_perfis ps
+            FROM acp_peso_sg_perfis ps
             JOIN clubes c ON ps.clube_id = c.id
             JOIN partidas p ON (
                 (p.clube_casa_id = ps.clube_id OR p.clube_visitante_id = ps.clube_id)
