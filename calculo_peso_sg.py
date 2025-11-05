@@ -15,9 +15,9 @@ def calculate_peso_sg_for_profile(conn, rodada_atual, perfil, usar_provaveis_car
         cursor.execute('''
             SELECT p.partida_id, p.clube_casa_id, c1.nome_fantasia AS casa_nome, 
                    p.clube_visitante_id, c2.nome_fantasia AS visitante_nome
-            FROM partidas p
-            JOIN clubes c1 ON p.clube_casa_id = c1.id
-            JOIN clubes c2 ON p.clube_visitante_id = c2.id
+            FROM acf_partidas p
+            JOIN acf_clubes c1 ON p.clube_casa_id = c1.id
+            JOIN acf_clubes c2 ON p.clube_visitante_id = c2.id
             WHERE p.rodada_id = %s AND p.valida = TRUE
         ''', (rodada_atual,))
         partidas = cursor.fetchall()
@@ -38,7 +38,7 @@ def calculate_peso_sg_for_profile(conn, rodada_atual, perfil, usar_provaveis_car
             # Calcular gols sofridos pela casa como mandante
             query_gols_sofridos_casa = '''
                 SELECT placar_oficial_visitante
-                FROM partidas
+                FROM acf_partidas
                 WHERE clube_casa_id = %s AND valida = TRUE AND rodada_id <= %s 
                 AND placar_oficial_visitante IS NOT NULL
                 ORDER BY rodada_id DESC
@@ -55,7 +55,7 @@ def calculate_peso_sg_for_profile(conn, rodada_atual, perfil, usar_provaveis_car
             # Calcular gols feitos pelo visitante como visitante
             query_gols_feitos_visitante = '''
                 SELECT placar_oficial_visitante
-                FROM partidas
+                FROM acf_partidas
                 WHERE clube_visitante_id = %s AND valida = TRUE AND rodada_id <= %s 
                 AND placar_oficial_visitante IS NOT NULL
                 ORDER BY rodada_id DESC
@@ -72,7 +72,7 @@ def calculate_peso_sg_for_profile(conn, rodada_atual, perfil, usar_provaveis_car
             # Calcular gols sofridos pelo visitante como visitante
             query_gols_sofridos_visitante = '''
                 SELECT placar_oficial_mandante
-                FROM partidas
+                FROM acf_partidas
                 WHERE clube_visitante_id = %s AND valida = TRUE AND rodada_id <= %s 
                 AND placar_oficial_mandante IS NOT NULL
                 ORDER BY rodada_id DESC
@@ -89,7 +89,7 @@ def calculate_peso_sg_for_profile(conn, rodada_atual, perfil, usar_provaveis_car
             # Calcular gols feitos pela casa como mandante
             query_gols_feitos_casa = '''
                 SELECT placar_oficial_mandante
-                FROM partidas
+                FROM acf_partidas
                 WHERE clube_casa_id = %s AND valida = TRUE AND rodada_id <= %s 
                 AND placar_oficial_mandante IS NOT NULL
                 ORDER BY rodada_id DESC
@@ -110,7 +110,7 @@ def calculate_peso_sg_for_profile(conn, rodada_atual, perfil, usar_provaveis_car
             # Calcular aproveitamento recente (últimas 3 partidas)
             cursor.execute('''
                 SELECT placar_oficial_mandante, placar_oficial_visitante
-                FROM partidas
+                FROM acf_partidas
                 WHERE clube_casa_id = %s AND valida = TRUE AND rodada_id <= %s 
                 AND placar_oficial_mandante IS NOT NULL
                 ORDER BY rodada_id DESC
@@ -120,7 +120,7 @@ def calculate_peso_sg_for_profile(conn, rodada_atual, perfil, usar_provaveis_car
             
             cursor.execute('''
                 SELECT placar_oficial_mandante, placar_oficial_visitante
-                FROM partidas
+                FROM acf_partidas
                 WHERE clube_visitante_id = %s AND valida = TRUE AND rodada_id <= %s 
                 AND placar_oficial_mandante IS NOT NULL
                 ORDER BY rodada_id DESC
@@ -169,7 +169,7 @@ def calculate_peso_sg_for_profile(conn, rodada_atual, perfil, usar_provaveis_car
                 
                 cursor.execute('''
                     SELECT AVG(a.media_num) as media_defesa, COUNT(*) as total_jogadores
-                    FROM atletas a
+                    FROM acf_atletas a
                     JOIN provaveis_cartola p ON a.atleta_id = p.atleta_id
                     WHERE a.clube_id = %s AND a.posicao_id = ANY(%s) AND p.status = 'provavel'
                 ''', (casa_id, posicoes_defesa))
@@ -177,7 +177,7 @@ def calculate_peso_sg_for_profile(conn, rodada_atual, perfil, usar_provaveis_car
                 
                 cursor.execute('''
                     SELECT AVG(a.media_num) as media_ataque, COUNT(*) as total_jogadores
-                    FROM atletas a
+                    FROM acf_atletas a
                     JOIN provaveis_cartola p ON a.atleta_id = p.atleta_id
                     WHERE a.clube_id = %s AND a.posicao_id IN (4, 5) AND p.status = 'provavel'
                 ''', (visitante_id,))
@@ -185,7 +185,7 @@ def calculate_peso_sg_for_profile(conn, rodada_atual, perfil, usar_provaveis_car
                 
                 cursor.execute('''
                     SELECT AVG(a.media_num) as media_defesa, COUNT(*) as total_jogadores
-                    FROM atletas a
+                    FROM acf_atletas a
                     JOIN provaveis_cartola p ON a.atleta_id = p.atleta_id
                     WHERE a.clube_id = %s AND a.posicao_id = ANY(%s) AND p.status = 'provavel'
                 ''', (visitante_id, posicoes_defesa))
@@ -193,7 +193,7 @@ def calculate_peso_sg_for_profile(conn, rodada_atual, perfil, usar_provaveis_car
                 
                 cursor.execute('''
                     SELECT AVG(a.media_num) as media_ataque, COUNT(*) as total_jogadores
-                    FROM atletas a
+                    FROM acf_atletas a
                     JOIN provaveis_cartola p ON a.atleta_id = p.atleta_id
                     WHERE a.clube_id = %s AND a.posicao_id IN (4, 5) AND p.status = 'provavel'
                 ''', (casa_id,))

@@ -21,13 +21,13 @@ def mostrar_ranking_peso_jogo(conn, rodada_atual, perfil_id):
                 c1.nome_fantasia as casa_nome,
                 c2.nome_fantasia as visitante_nome
             FROM acp_peso_jogo_perfis pj
-            JOIN clubes c ON pj.clube_id = c.id
-            JOIN partidas p ON (
+            JOIN acf_clubes c ON pj.clube_id = c.id
+            JOIN acf_partidas p ON (
                 (p.clube_casa_id = pj.clube_id OR p.clube_visitante_id = pj.clube_id)
                 AND p.rodada_id = %s AND p.valida = TRUE
             )
-            JOIN clubes c1 ON p.clube_casa_id = c1.id
-            JOIN clubes c2 ON p.clube_visitante_id = c2.id
+            JOIN acf_clubes c1 ON p.clube_casa_id = c1.id
+            JOIN acf_clubes c2 ON p.clube_visitante_id = c2.id
             WHERE pj.perfil_id = %s AND pj.rodada_atual = %s
             ORDER BY pj.peso_jogo DESC
         ''', (rodada_atual, perfil_id, rodada_atual))
@@ -115,13 +115,13 @@ def mostrar_ranking_peso_sg(conn, rodada_atual, perfil_id):
                 c1.nome_fantasia as casa_nome,
                 c2.nome_fantasia as visitante_nome
             FROM acp_peso_sg_perfis ps
-            JOIN clubes c ON ps.clube_id = c.id
-            JOIN partidas p ON (
+            JOIN acf_clubes c ON ps.clube_id = c.id
+            JOIN acf_partidas p ON (
                 (p.clube_casa_id = ps.clube_id OR p.clube_visitante_id = ps.clube_id)
                 AND p.rodada_id = %s AND p.valida = TRUE
             )
-            JOIN clubes c1 ON p.clube_casa_id = c1.id
-            JOIN clubes c2 ON p.clube_visitante_id = c2.id
+            JOIN acf_clubes c1 ON p.clube_casa_id = c1.id
+            JOIN acf_clubes c2 ON p.clube_visitante_id = c2.id
             WHERE ps.perfil_id = %s AND ps.rodada_atual = %s
             ORDER BY ps.peso_sg DESC
         ''', (rodada_atual, perfil_id, rodada_atual))
