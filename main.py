@@ -47,7 +47,17 @@ def execute_calculations(scheduler=None):
         _agendar_proxima_execucao(scheduler, start_time)
         return
     
+    # Verificar se o mercado está aberto
+    # status_mercado: 1 = aberto, 2 = fechado, etc.
+    status_mercado = status_data.get('status_mercado')
+    if status_mercado != 1:
+        logger.info(f"Mercado está fechado (status: {status_mercado}). Pulando atualização das tabelas.")
+        logger.info("Os cálculos serão retomados quando o mercado abrir novamente.")
+        _agendar_proxima_execucao(scheduler, start_time)
+        return
+    
     logger.info(f"Rodada atual: {rodada_atual}")
+    logger.info(f"Mercado está aberto (status: {status_mercado}). Iniciando cálculos...")
     
     # Conectar ao banco
     conn = get_db_connection()
