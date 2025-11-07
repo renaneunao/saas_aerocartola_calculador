@@ -35,6 +35,13 @@ PERFIS_PESO_JOGO = [
     {'id': 8, 'ultimas_partidas': 7, 'expoente': 1/3, 'descricao': 'Últimos 7 jogos (Agressivo)'},
     {'id': 9, 'ultimas_partidas': 10, 'expoente': 1/3, 'descricao': 'Últimos 10 jogos (Agressivo)'},
     {'id': 10, 'ultimas_partidas': 12, 'expoente': 1/3, 'descricao': 'Últimos 12 jogos (Agressivo)'},
+    
+    # Perfis baseados em rating (ELO) - 5 perfis com os mesmos números de jogos
+    {'id': 11, 'ultimas_partidas': 2, 'expoente': 1/4, 'metodo': 'rating', 'descricao': 'Rating - Últimos 2 jogos'},
+    {'id': 12, 'ultimas_partidas': 4, 'expoente': 1/4, 'metodo': 'rating', 'descricao': 'Rating - Últimos 4 jogos'},
+    {'id': 13, 'ultimas_partidas': 7, 'expoente': 1/4, 'metodo': 'rating', 'descricao': 'Rating - Últimos 7 jogos'},
+    {'id': 14, 'ultimas_partidas': 10, 'expoente': 1/4, 'metodo': 'rating', 'descricao': 'Rating - Últimos 10 jogos'},
+    {'id': 15, 'ultimas_partidas': 12, 'expoente': 1/4, 'metodo': 'rating', 'descricao': 'Rating - Últimos 12 jogos'},
 ]
 
 # 10 perfis de peso do SG: 5 brandos e 5 agressivos

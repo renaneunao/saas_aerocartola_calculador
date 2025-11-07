@@ -5,6 +5,7 @@ from datetime import datetime
 from database import get_db_connection, close_db_connection, init_tables
 from api_cartola import fetch_status_data
 from calculo_peso_jogo import calculate_peso_jogo_for_profile
+from calculo_peso_jogo_rating import calculate_peso_jogo_for_profile_rating
 from calculo_peso_sg import calculate_peso_sg_for_profile
 from mostrar_rankings import mostrar_ranking_peso_jogo, mostrar_ranking_peso_sg
 from config import PERFIS_PESO_JOGO, PERFIS_PESO_SG, CALCULATION_INTERVAL_MINUTES
@@ -62,12 +63,16 @@ def execute_calculations(scheduler=None):
         # Cache compartilhado de análises de setores (os dados dos atletas não mudam entre perfis)
         cache_setores_jogo = {}
         
-        # Calcular peso do jogo para todos os perfis
+        # Separar perfis normais e perfis de rating
+        perfis_normais = [p for p in PERFIS_PESO_JOGO if p.get('metodo') != 'rating']
+        perfis_rating = [p for p in PERFIS_PESO_JOGO if p.get('metodo') == 'rating']
+        
+        # Calcular peso do jogo para perfis normais (IDs 1-10)
         logger.info(f"\n{'='*80}")
-        logger.info("CALCULANDO PESO DO JOGO - 10 PERFIS")
+        logger.info("CALCULANDO PESO DO JOGO - PERFIS NORMAIS (10 PERFIS)")
         logger.info(f"{'='*80}\n")
         
-        for perfil in PERFIS_PESO_JOGO:
+        for perfil in perfis_normais:
             try:
                 logger.info(f"Processando perfil {perfil['id']}: {perfil['descricao']}")
                 calculate_peso_jogo_for_profile(
@@ -78,10 +83,33 @@ def execute_calculations(scheduler=None):
                     cache_setores=cache_setores_jogo
                 )
                 logger.info(f"[OK] Perfil {perfil['id']} de peso do jogo concluido")
-                # Mostrar ranking
-                mostrar_ranking_peso_jogo(conn, rodada_atual, perfil['id'])
+                # Mostrar ranking apenas para alguns perfis (para não poluir o log)
+                if perfil['id'] in [1, 5, 6, 10]:
+                    mostrar_ranking_peso_jogo(conn, rodada_atual, perfil['id'])
             except Exception as e:
                 logger.error(f"[ERRO] Erro ao processar perfil {perfil['id']} de peso do jogo: {e}", exc_info=True)
+        
+        # Calcular peso do jogo para perfis de rating (IDs 11-15)
+        logger.info(f"\n{'='*80}")
+        logger.info("CALCULANDO PESO DO JOGO - PERFIS RATING (5 PERFIS)")
+        logger.info(f"{'='*80}\n")
+        
+        for perfil in perfis_rating:
+            try:
+                logger.info(f"Processando perfil {perfil['id']}: {perfil['descricao']}")
+                calculate_peso_jogo_for_profile_rating(
+                    conn, 
+                    rodada_atual, 
+                    perfil, 
+                    usar_provaveis_cartola=False,
+                    cache_setores=cache_setores_jogo
+                )
+                logger.info(f"[OK] Perfil {perfil['id']} de peso do jogo (RATING) concluido")
+                # Mostrar ranking apenas para alguns perfis
+                if perfil['id'] in [11, 15]:
+                    mostrar_ranking_peso_jogo(conn, rodada_atual, perfil['id'])
+            except Exception as e:
+                logger.error(f"[ERRO] Erro ao processar perfil {perfil['id']} de peso do jogo (RATING): {e}", exc_info=True)
         
         # Calcular peso do SG para todos os perfis
         logger.info(f"\n{'='*80}")
@@ -98,8 +126,9 @@ def execute_calculations(scheduler=None):
                     usar_provaveis_cartola=False
                 )
                 logger.info(f"[OK] Perfil {perfil['id']} de peso do SG concluido")
-                # Mostrar ranking
-                mostrar_ranking_peso_sg(conn, rodada_atual, perfil['id'])
+                # Mostrar ranking apenas para alguns perfis (para não poluir o log)
+                if perfil['id'] in [1, 5, 6, 10]:
+                    mostrar_ranking_peso_sg(conn, rodada_atual, perfil['id'])
             except Exception as e:
                 logger.error(f"[ERRO] Erro ao processar perfil {perfil['id']} de peso do SG: {e}", exc_info=True)
         
