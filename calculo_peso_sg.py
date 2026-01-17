@@ -267,21 +267,21 @@ def calculate_peso_sg_for_profile(conn, rodada_atual, perfil, usar_provaveis_car
             # Deletar registros antigos do perfil para esta rodada
             cursor.execute('''
                 DELETE FROM acp_peso_sg_perfis 
-                WHERE perfil_id = %s AND rodada_atual = %s
-            ''', (perfil_id, rodada_atual))
+                WHERE perfil_id = %s AND rodada_atual = %s AND temporada = %s
+            ''', (perfil_id, rodada_atual, temporada_atual))
             
             # Inserir novos valores
             insert_data = [
-                (perfil_id, rodada_atual, clube_id, peso_sg, ultimas_partidas)
+                (perfil_id, rodada_atual, clube_id, peso_sg, ultimas_partidas, temporada_atual)
                 for clube_id, peso_sg in updates_normalizados
             ]
             
             execute_values(
                 cursor,
                 '''
-                INSERT INTO acp_peso_sg_perfis (perfil_id, rodada_atual, clube_id, peso_sg, ultimas_partidas)
+                INSERT INTO acp_peso_sg_perfis (perfil_id, rodada_atual, clube_id, peso_sg, ultimas_partidas, temporada)
                 VALUES %s
-                ON CONFLICT (perfil_id, rodada_atual, clube_id) 
+                ON CONFLICT (perfil_id, rodada_atual, clube_id, temporada) 
                 DO UPDATE SET peso_sg = EXCLUDED.peso_sg, created_at = NOW()
                 ''',
                 insert_data,

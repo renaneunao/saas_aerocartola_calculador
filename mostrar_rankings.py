@@ -30,9 +30,9 @@ def mostrar_ranking_peso_jogo(conn, rodada_atual, perfil_id):
             )
             JOIN acf_clubes c1 ON p.clube_casa_id = c1.id
             JOIN acf_clubes c2 ON p.clube_visitante_id = c2.id
-            WHERE pj.perfil_id = %s AND pj.rodada_atual = %s
+            WHERE pj.perfil_id = %s AND pj.rodada_atual = %s AND pj.temporada = %s
             ORDER BY pj.peso_jogo DESC
-        ''', (rodada_atual, temporada_atual, perfil_id, rodada_atual))
+        ''', (rodada_atual, temporada_atual, perfil_id, rodada_atual, temporada_atual))
         
         resultados = cursor.fetchall()
         
@@ -125,9 +125,9 @@ def mostrar_ranking_peso_sg(conn, rodada_atual, perfil_id):
             )
             JOIN acf_clubes c1 ON p.clube_casa_id = c1.id
             JOIN acf_clubes c2 ON p.clube_visitante_id = c2.id
-            WHERE ps.perfil_id = %s AND ps.rodada_atual = %s
+            WHERE ps.perfil_id = %s AND ps.rodada_atual = %s AND ps.temporada = %s
             ORDER BY ps.peso_sg DESC
-        ''', (rodada_atual, temporada_atual, perfil_id, rodada_atual))
+        ''', (rodada_atual, temporada_atual, perfil_id, rodada_atual, temporada_atual))
         
         resultados = cursor.fetchall()
         

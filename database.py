@@ -37,8 +37,9 @@ def init_tables(conn):
                 clube_id INTEGER NOT NULL,
                 peso_jogo REAL NOT NULL,
                 ultimas_partidas INTEGER NOT NULL,
+                temporada INTEGER DEFAULT 2025,
                 created_at TIMESTAMP DEFAULT NOW(),
-                UNIQUE(perfil_id, rodada_atual, clube_id)
+                UNIQUE(perfil_id, rodada_atual, clube_id, temporada)
             );
         ''')
         
@@ -51,20 +52,21 @@ def init_tables(conn):
                 clube_id INTEGER NOT NULL,
                 peso_sg REAL NOT NULL,
                 ultimas_partidas INTEGER NOT NULL,
+                temporada INTEGER DEFAULT 2025,
                 created_at TIMESTAMP DEFAULT NOW(),
-                UNIQUE(perfil_id, rodada_atual, clube_id)
+                UNIQUE(perfil_id, rodada_atual, clube_id, temporada)
             );
         ''')
         
         # Índices para performance
         cursor.execute('''
             CREATE INDEX IF NOT EXISTS idx_acp_peso_jogo_perfis 
-            ON acp_peso_jogo_perfis(perfil_id, rodada_atual, clube_id);
+            ON acp_peso_jogo_perfis(perfil_id, rodada_atual, clube_id, temporada);
         ''')
         
         cursor.execute('''
             CREATE INDEX IF NOT EXISTS idx_acp_peso_sg_perfis 
-            ON acp_peso_sg_perfis(perfil_id, rodada_atual, clube_id);
+            ON acp_peso_sg_perfis(perfil_id, rodada_atual, clube_id, temporada);
         ''')
         
         conn.commit()
