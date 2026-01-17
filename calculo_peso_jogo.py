@@ -3,6 +3,7 @@ import math
 from psycopg2.extras import execute_values
 from database import get_db_connection
 from config import PERFIS_PESO_JOGO
+from api_cartola import get_temporada_atual
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +100,7 @@ def calculate_peso_jogo_for_profile(conn, rodada_atual, perfil, usar_provaveis_c
     cursor = conn.cursor()
     perfil_id = perfil['id']
     ultimas_partidas = perfil['ultimas_partidas']
+    ano = get_temporada_atual()
     
     # Usar cache compartilhado se fornecido, senão criar novo
     if cache_setores is None:
@@ -112,12 +114,12 @@ def calculate_peso_jogo_for_profile(conn, rodada_atual, perfil, usar_provaveis_c
             FROM acf_partidas p
             JOIN acf_clubes c1 ON p.clube_casa_id = c1.id
             JOIN acf_clubes c2 ON p.clube_visitante_id = c2.id
-            WHERE p.rodada_id = %s AND p.valida = TRUE
-        ''', (rodada_atual,))
+            WHERE p.rodada_id = %s AND p.temporada = %s AND p.valida = TRUE
+        ''', (rodada_atual, ano))
         partidas = cursor.fetchall()
         
         if not partidas:
-            logger.warning(f"Nenhuma partida encontrada para rodada {rodada_atual}")
+            logger.warning(f"Nenhuma partida encontrada para rodada {rodada_atual} da temporada {ano}")
             return
         
         logger.info(f"Calculando peso do jogo - Perfil {perfil_id} ({ultimas_partidas} ultimas partidas) - {len(partidas)} partidas")
@@ -133,11 +135,11 @@ def calculate_peso_jogo_for_profile(conn, rodada_atual, perfil, usar_provaveis_c
             cursor.execute('''
                 SELECT placar_oficial_mandante, placar_oficial_visitante
                 FROM acf_partidas
-                WHERE clube_casa_id = %s AND valida = TRUE AND rodada_id <= %s
+                WHERE clube_casa_id = %s AND valida = TRUE AND rodada_id <= %s AND temporada = %s
                 AND placar_oficial_mandante IS NOT NULL AND placar_oficial_visitante IS NOT NULL
                 ORDER BY rodada_id DESC
                 LIMIT %s
-            ''', (casa_id, rodada_atual - 1, ultimas_partidas))
+            ''', (casa_id, rodada_atual - 1, ano, ultimas_partidas))
             partidas_casa = cursor.fetchall()
             
             vitorias_casa = empates_casa = derrotas_casa = 0
@@ -172,11 +174,11 @@ def calculate_peso_jogo_for_profile(conn, rodada_atual, perfil, usar_provaveis_c
             cursor.execute('''
                 SELECT placar_oficial_mandante, placar_oficial_visitante
                 FROM acf_partidas
-                WHERE clube_visitante_id = %s AND valida = TRUE AND rodada_id <= %s
+                WHERE clube_visitante_id = %s AND valida = TRUE AND rodada_id <= %s AND temporada = %s
                 AND placar_oficial_mandante IS NOT NULL AND placar_oficial_visitante IS NOT NULL
                 ORDER BY rodada_id DESC
                 LIMIT %s
-            ''', (visitante_id, rodada_atual - 1, ultimas_partidas))
+            ''', (visitante_id, rodada_atual - 1, ano, ultimas_partidas))
             partidas_visitante = cursor.fetchall()
             
             vitorias_visitante = empates_visitante = derrotas_visitante = 0

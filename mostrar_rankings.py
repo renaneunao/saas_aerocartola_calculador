@@ -1,12 +1,14 @@
 """Funções para exibir rankings de peso do jogo e peso do SG"""
 import logging
 from database import get_db_connection
+from api_cartola import get_temporada_atual
 
 logger = logging.getLogger(__name__)
 
 def mostrar_ranking_peso_jogo(conn, rodada_atual, perfil_id):
     """Exibe ranking de peso do jogo para um perfil específico"""
     cursor = conn.cursor()
+    temporada_atual = get_temporada_atual()
     
     try:
         # Buscar dados com informações das partidas
@@ -24,13 +26,13 @@ def mostrar_ranking_peso_jogo(conn, rodada_atual, perfil_id):
             JOIN acf_clubes c ON pj.clube_id = c.id
             JOIN acf_partidas p ON (
                 (p.clube_casa_id = pj.clube_id OR p.clube_visitante_id = pj.clube_id)
-                AND p.rodada_id = %s AND p.valida = TRUE
+                AND p.rodada_id = %s AND p.temporada = %s AND p.valida = TRUE
             )
             JOIN acf_clubes c1 ON p.clube_casa_id = c1.id
             JOIN acf_clubes c2 ON p.clube_visitante_id = c2.id
             WHERE pj.perfil_id = %s AND pj.rodada_atual = %s
             ORDER BY pj.peso_jogo DESC
-        ''', (rodada_atual, perfil_id, rodada_atual))
+        ''', (rodada_atual, temporada_atual, perfil_id, rodada_atual))
         
         resultados = cursor.fetchall()
         
@@ -101,6 +103,7 @@ def mostrar_ranking_peso_jogo(conn, rodada_atual, perfil_id):
 def mostrar_ranking_peso_sg(conn, rodada_atual, perfil_id):
     """Exibe ranking de peso do SG para um perfil específico"""
     cursor = conn.cursor()
+    temporada_atual = get_temporada_atual()
     
     try:
         # Buscar dados com informações das partidas
@@ -118,13 +121,13 @@ def mostrar_ranking_peso_sg(conn, rodada_atual, perfil_id):
             JOIN acf_clubes c ON ps.clube_id = c.id
             JOIN acf_partidas p ON (
                 (p.clube_casa_id = ps.clube_id OR p.clube_visitante_id = ps.clube_id)
-                AND p.rodada_id = %s AND p.valida = TRUE
+                AND p.rodada_id = %s AND p.temporada = %s AND p.valida = TRUE
             )
             JOIN acf_clubes c1 ON p.clube_casa_id = c1.id
             JOIN acf_clubes c2 ON p.clube_visitante_id = c2.id
             WHERE ps.perfil_id = %s AND ps.rodada_atual = %s
             ORDER BY ps.peso_sg DESC
-        ''', (rodada_atual, perfil_id, rodada_atual))
+        ''', (rodada_atual, temporada_atual, perfil_id, rodada_atual))
         
         resultados = cursor.fetchall()
         

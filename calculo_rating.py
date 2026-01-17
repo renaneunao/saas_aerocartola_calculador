@@ -50,7 +50,7 @@ def atualizar_rating(
     return novo_rating
 
 
-def calcular_ratings_historicos(cursor, rodada_atual: int) -> Dict[int, float]:
+def calcular_ratings_historicos(cursor, rodada_atual: int, ano: int) -> Dict[int, float]:
     """
     Calcula os ratings de todos os times considerando todas as partidas até a rodada atual
     
@@ -59,6 +59,7 @@ def calcular_ratings_historicos(cursor, rodada_atual: int) -> Dict[int, float]:
     Args:
         cursor: Cursor do banco de dados
         rodada_atual: Rodada atual (calcula até rodada_atual - 1)
+        ano: Ano da temporada
     
     Returns:
         Dicionário {clube_id: rating_atual}
@@ -74,10 +75,11 @@ def calcular_ratings_historicos(cursor, rodada_atual: int) -> Dict[int, float]:
         FROM acf_partidas
         WHERE valida = TRUE 
         AND rodada_id < %s
-        AND placar_oficial_mandante IS NOT NULL 
+        AND temporada = %s
+        AND placar_oficial_mandante IS NOT NULL  
         AND placar_oficial_visitante IS NOT NULL
         ORDER BY rodada_id, partida_id
-    ''', (rodada_atual,))
+    ''', (rodada_atual, ano))
     
     partidas = cursor.fetchall()
     
@@ -132,6 +134,7 @@ def calcular_rating_recente(
     cursor,
     clube_id: int,
     rodada_atual: int,
+    ano: int,
     ultimas_partidas: int,
     como_mandante: bool = True,
     ratings_historicos: Optional[Dict[int, float]] = None
@@ -146,6 +149,7 @@ def calcular_rating_recente(
         cursor: Cursor do banco
         clube_id: ID do clube
         rodada_atual: Rodada atual
+        ano: Ano da temporada
         ultimas_partidas: Número de últimas partidas a considerar
         como_mandante: Se True, considera partidas como mandante; se False, como visitante
         ratings_historicos: Ratings históricos de todos os times (se None, será calculado)
@@ -154,7 +158,7 @@ def calcular_rating_recente(
         Rating recente do time
     """
     if ratings_historicos is None:
-        ratings_historicos = calcular_ratings_historicos(cursor, rodada_atual)
+        ratings_historicos = calcular_ratings_historicos(cursor, rodada_atual, ano)
     
     # Buscar últimas N partidas
     if como_mandante:
@@ -168,10 +172,11 @@ def calcular_rating_recente(
             WHERE clube_casa_id = %s 
             AND valida = TRUE 
             AND rodada_id < %s
+            AND temporada = %s
             AND placar_oficial_mandante IS NOT NULL
             ORDER BY rodada_id DESC
             LIMIT %s
-        ''', (clube_id, rodada_atual, ultimas_partidas))
+        ''', (clube_id, rodada_atual, ano, ultimas_partidas))
     else:
         cursor.execute('''
             SELECT 
@@ -183,10 +188,11 @@ def calcular_rating_recente(
             WHERE clube_visitante_id = %s 
             AND valida = TRUE 
             AND rodada_id < %s
+            AND temporada = %s
             AND placar_oficial_visitante IS NOT NULL
             ORDER BY rodada_id DESC
             LIMIT %s
-        ''', (clube_id, rodada_atual, ultimas_partidas))
+        ''', (clube_id, rodada_atual, ano, ultimas_partidas))
     
     partidas_recentes = cursor.fetchall()
     
@@ -199,7 +205,7 @@ def calcular_rating_recente(
     
     # Calcular rating base: rating antes da primeira partida recente
     primeira_rodada = partidas_recentes[0][3]
-    ratings_antes = calcular_ratings_historicos(cursor, primeira_rodada)
+    ratings_antes = calcular_ratings_historicos(cursor, primeira_rodada, ano)
     rating_atual = ratings_antes.get(clube_id, RATING_INICIAL)
     
     # Processar partidas recentes em ordem cronológica

@@ -1,6 +1,8 @@
 import logging
 from psycopg2.extras import execute_values
+from psycopg2.extras import execute_values
 from database import get_db_connection
+from api_cartola import get_temporada_atual
 
 logger = logging.getLogger(__name__)
 
@@ -9,6 +11,7 @@ def calculate_peso_sg_for_profile(conn, rodada_atual, perfil, usar_provaveis_car
     cursor = conn.cursor()
     perfil_id = perfil['id']
     ultimas_partidas = perfil['ultimas_partidas']
+    temporada_atual = get_temporada_atual()
     
     try:
         # Obter partidas da rodada atual
@@ -18,8 +21,8 @@ def calculate_peso_sg_for_profile(conn, rodada_atual, perfil, usar_provaveis_car
             FROM acf_partidas p
             JOIN acf_clubes c1 ON p.clube_casa_id = c1.id
             JOIN acf_clubes c2 ON p.clube_visitante_id = c2.id
-            WHERE p.rodada_id = %s AND p.valida = TRUE
-        ''', (rodada_atual,))
+            WHERE p.rodada_id = %s AND p.temporada = %s AND p.valida = TRUE
+        ''', (rodada_atual, temporada_atual))
         partidas = cursor.fetchall()
         
         if not partidas:
@@ -39,12 +42,12 @@ def calculate_peso_sg_for_profile(conn, rodada_atual, perfil, usar_provaveis_car
             query_gols_sofridos_casa = '''
                 SELECT placar_oficial_visitante
                 FROM acf_partidas
-                WHERE clube_casa_id = %s AND valida = TRUE AND rodada_id <= %s 
+                WHERE clube_casa_id = %s AND valida = TRUE AND rodada_id <= %s AND temporada = %s
                 AND placar_oficial_visitante IS NOT NULL
                 ORDER BY rodada_id DESC
                 LIMIT %s
             '''
-            params = (casa_id, rodada_atual - 1, ultimas_partidas)
+            params = (casa_id, rodada_atual - 1, temporada_atual, ultimas_partidas)
             
             cursor.execute(query_gols_sofridos_casa, params)
             gols_sofridos_casa = cursor.fetchall()
@@ -56,12 +59,12 @@ def calculate_peso_sg_for_profile(conn, rodada_atual, perfil, usar_provaveis_car
             query_gols_feitos_visitante = '''
                 SELECT placar_oficial_visitante
                 FROM acf_partidas
-                WHERE clube_visitante_id = %s AND valida = TRUE AND rodada_id <= %s 
+                WHERE clube_visitante_id = %s AND valida = TRUE AND rodada_id <= %s AND temporada = %s
                 AND placar_oficial_visitante IS NOT NULL
                 ORDER BY rodada_id DESC
                 LIMIT %s
             '''
-            params = (visitante_id, rodada_atual - 1, ultimas_partidas)
+            params = (visitante_id, rodada_atual - 1, temporada_atual, ultimas_partidas)
             
             cursor.execute(query_gols_feitos_visitante, params)
             gols_feitos_visitante = cursor.fetchall()
@@ -73,12 +76,12 @@ def calculate_peso_sg_for_profile(conn, rodada_atual, perfil, usar_provaveis_car
             query_gols_sofridos_visitante = '''
                 SELECT placar_oficial_mandante
                 FROM acf_partidas
-                WHERE clube_visitante_id = %s AND valida = TRUE AND rodada_id <= %s 
+                WHERE clube_visitante_id = %s AND valida = TRUE AND rodada_id <= %s AND temporada = %s
                 AND placar_oficial_mandante IS NOT NULL
                 ORDER BY rodada_id DESC
                 LIMIT %s
             '''
-            params = (visitante_id, rodada_atual - 1, ultimas_partidas)
+            params = (visitante_id, rodada_atual - 1, temporada_atual, ultimas_partidas)
             
             cursor.execute(query_gols_sofridos_visitante, params)
             gols_sofridos_visitante = cursor.fetchall()
@@ -90,12 +93,12 @@ def calculate_peso_sg_for_profile(conn, rodada_atual, perfil, usar_provaveis_car
             query_gols_feitos_casa = '''
                 SELECT placar_oficial_mandante
                 FROM acf_partidas
-                WHERE clube_casa_id = %s AND valida = TRUE AND rodada_id <= %s 
+                WHERE clube_casa_id = %s AND valida = TRUE AND rodada_id <= %s AND temporada = %s
                 AND placar_oficial_mandante IS NOT NULL
                 ORDER BY rodada_id DESC
                 LIMIT %s
             '''
-            params = (casa_id, rodada_atual - 1, ultimas_partidas)
+            params = (casa_id, rodada_atual - 1, temporada_atual, ultimas_partidas)
             
             cursor.execute(query_gols_feitos_casa, params)
             gols_feitos_casa = cursor.fetchall()
@@ -111,21 +114,21 @@ def calculate_peso_sg_for_profile(conn, rodada_atual, perfil, usar_provaveis_car
             cursor.execute('''
                 SELECT placar_oficial_mandante, placar_oficial_visitante
                 FROM acf_partidas
-                WHERE clube_casa_id = %s AND valida = TRUE AND rodada_id <= %s 
+                WHERE clube_casa_id = %s AND valida = TRUE AND rodada_id <= %s AND temporada = %s
                 AND placar_oficial_mandante IS NOT NULL
                 ORDER BY rodada_id DESC
                 LIMIT 3
-            ''', (casa_id, rodada_atual - 1))
+            ''', (casa_id, rodada_atual - 1, temporada_atual))
             partidas_casa = cursor.fetchall()
             
             cursor.execute('''
                 SELECT placar_oficial_mandante, placar_oficial_visitante
                 FROM acf_partidas
-                WHERE clube_visitante_id = %s AND valida = TRUE AND rodada_id <= %s 
+                WHERE clube_visitante_id = %s AND valida = TRUE AND rodada_id <= %s AND temporada = %s
                 AND placar_oficial_mandante IS NOT NULL
                 ORDER BY rodada_id DESC
                 LIMIT 3
-            ''', (visitante_id, rodada_atual - 1))
+            ''', (visitante_id, rodada_atual - 1, temporada_atual))
             partidas_visitante = cursor.fetchall()
             
             pontos_casa = 0

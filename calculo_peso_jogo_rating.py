@@ -12,6 +12,7 @@ from calculo_rating import (
     calcular_diferenca_rating_peso
 )
 from calculo_peso_jogo import calculate_team_sector_analysis
+from api_cartola import get_temporada_atual
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,7 @@ def calculate_peso_jogo_for_profile_rating(conn, rodada_atual, perfil, usar_prov
     cursor = conn.cursor()
     perfil_id = perfil['id']
     ultimas_partidas = perfil['ultimas_partidas']
+    temporada_atual = get_temporada_atual()
     
     # Usar cache compartilhado se fornecido, senão criar novo
     if cache_setores is None:
@@ -35,8 +37,8 @@ def calculate_peso_jogo_for_profile_rating(conn, rodada_atual, perfil, usar_prov
     
     try:
         # Calcular ratings históricos uma vez para toda a rodada
-        logger.info(f"Calculando ratings históricos até rodada {rodada_atual - 1}")
-        ratings_historicos = calcular_ratings_historicos(cursor, rodada_atual)
+        logger.info(f"Calculando ratings históricos até rodada {rodada_atual - 1} da temporada {temporada_atual}")
+        ratings_historicos = calcular_ratings_historicos(cursor, rodada_atual, temporada_atual)
         
         # Obter partidas da rodada atual
         cursor.execute('''
@@ -45,8 +47,8 @@ def calculate_peso_jogo_for_profile_rating(conn, rodada_atual, perfil, usar_prov
             FROM acf_partidas p
             JOIN acf_clubes c1 ON p.clube_casa_id = c1.id
             JOIN acf_clubes c2 ON p.clube_visitante_id = c2.id
-            WHERE p.rodada_id = %s AND p.valida = TRUE
-        ''', (rodada_atual,))
+            WHERE p.rodada_id = %s AND p.temporada = %s AND p.valida = TRUE
+        ''', (rodada_atual, temporada_atual))
         partidas = cursor.fetchall()
         
         if not partidas:
@@ -64,13 +66,13 @@ def calculate_peso_jogo_for_profile_rating(conn, rodada_atual, perfil, usar_prov
             
             # Calcular rating recente da casa (como mandante)
             rating_casa = calcular_rating_recente(
-                cursor, casa_id, rodada_atual, ultimas_partidas,
+                cursor, casa_id, rodada_atual, temporada_atual, ultimas_partidas,
                 como_mandante=True, ratings_historicos=ratings_historicos
             )
             
             # Calcular rating recente do visitante (como visitante)
             rating_visitante = calcular_rating_recente(
-                cursor, visitante_id, rodada_atual, ultimas_partidas,
+                cursor, visitante_id, rodada_atual, temporada_atual, ultimas_partidas,
                 como_mandante=False, ratings_historicos=ratings_historicos
             )
             

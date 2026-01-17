@@ -7,7 +7,7 @@ from typing import Dict, List, Tuple, Optional
 
 logger = logging.getLogger(__name__)
 
-def calcular_tabela_classificacao(cursor, rodada_atual: int) -> Dict[int, Dict]:
+def calcular_tabela_classificacao(cursor, rodada_atual: int, ano: int) -> Dict[int, Dict]:
     """
     Calcula a tabela de classificação até a rodada atual
     
@@ -34,10 +34,11 @@ def calcular_tabela_classificacao(cursor, rodada_atual: int) -> Dict[int, Dict]:
         FROM acf_partidas
         WHERE valida = TRUE 
         AND rodada_id <= %s
+        AND temporada = %s
         AND placar_oficial_mandante IS NOT NULL 
         AND placar_oficial_visitante IS NOT NULL
         ORDER BY rodada_id
-    ''', (rodada_atual,))
+    ''', (rodada_atual, ano))
     
     partidas = cursor.fetchall()
     
@@ -143,6 +144,7 @@ def calcular_forca_media_adversarios(
     cursor, 
     clube_id: int, 
     rodada_atual: int, 
+    ano: int,
     ultimas_partidas: int,
     como_mandante: bool = True,
     tabela_classificacao: Optional[Dict[int, Dict]] = None
@@ -162,7 +164,7 @@ def calcular_forca_media_adversarios(
         Força média normalizada dos adversários (0.0-1.0)
     """
     if tabela_classificacao is None:
-        tabela_classificacao = calcular_tabela_classificacao(cursor, rodada_atual)
+        tabela_classificacao = calcular_tabela_classificacao(cursor, rodada_atual, ano)
     
     # Buscar últimas partidas
     if como_mandante:
@@ -172,10 +174,11 @@ def calcular_forca_media_adversarios(
             WHERE clube_casa_id = %s 
             AND valida = TRUE 
             AND rodada_id <= %s
+            AND temporada = %s
             AND placar_oficial_mandante IS NOT NULL
             ORDER BY rodada_id DESC
             LIMIT %s
-        ''', (clube_id, rodada_atual - 1, ultimas_partidas))
+        ''', (clube_id, rodada_atual - 1, ano, ultimas_partidas))
     else:
         cursor.execute('''
             SELECT clube_casa_id
@@ -183,10 +186,11 @@ def calcular_forca_media_adversarios(
             WHERE clube_visitante_id = %s 
             AND valida = TRUE 
             AND rodada_id <= %s
+            AND temporada = %s
             AND placar_oficial_visitante IS NOT NULL
             ORDER BY rodada_id DESC
             LIMIT %s
-        ''', (clube_id, rodada_atual - 1, ultimas_partidas))
+        ''', (clube_id, rodada_atual - 1, ano, ultimas_partidas))
     
     adversarios = cursor.fetchall()
     
