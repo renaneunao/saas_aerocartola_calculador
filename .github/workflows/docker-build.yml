@@ -37,6 +37,7 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           cd /root/apps/cartola-aero/cartola-aero-calculador
+          docker compose down --remove-orphans || true
           docker compose pull
           docker compose up -d
           echo "Calculador deployed successfully!"
