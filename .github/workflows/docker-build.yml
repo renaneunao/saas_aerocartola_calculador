@@ -29,5 +29,17 @@ jobs:
         push: true
         tags: renaneunao/saas-cartola-calculador:latest
     
+    - name: Deploy to VPS
+      uses: appleboy/ssh-action@v1
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          cd /root/apps/cartola-aero/cartola-aero-calculador
+          docker compose pull
+          docker compose up -d
+          echo "Calculador deployed successfully!"
+
     - name: Verify deployment
       run: echo "Docker image built and pushed successfully to Docker Hub!"
