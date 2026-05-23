@@ -174,32 +174,32 @@ def calculate_peso_sg_for_profile(conn, rodada_atual, perfil, usar_provaveis_car
                     SELECT AVG(a.media_num) as media_defesa, COUNT(*) as total_jogadores
                     FROM acf_atletas a
                     JOIN provaveis_cartola p ON a.atleta_id = p.atleta_id
-                    WHERE a.clube_id = %s AND a.posicao_id = ANY(%s) AND p.status = 'provavel'
-                ''', (casa_id, posicoes_defesa))
+                    WHERE a.clube_id = %s AND a.posicao_id = ANY(%s) AND p.status = 'provavel' AND a.temporada = %s
+                ''', (casa_id, posicoes_defesa, temporada_atual))
                 defesa_casa = cursor.fetchone()
                 
                 cursor.execute('''
                     SELECT AVG(a.media_num) as media_ataque, COUNT(*) as total_jogadores
                     FROM acf_atletas a
                     JOIN provaveis_cartola p ON a.atleta_id = p.atleta_id
-                    WHERE a.clube_id = %s AND a.posicao_id IN (4, 5) AND p.status = 'provavel'
-                ''', (visitante_id,))
+                    WHERE a.clube_id = %s AND a.posicao_id IN (4, 5) AND p.status = 'provavel' AND a.temporada = %s
+                ''', (visitante_id, temporada_atual))
                 ataque_visitante = cursor.fetchone()
                 
                 cursor.execute('''
                     SELECT AVG(a.media_num) as media_defesa, COUNT(*) as total_jogadores
                     FROM acf_atletas a
                     JOIN provaveis_cartola p ON a.atleta_id = p.atleta_id
-                    WHERE a.clube_id = %s AND a.posicao_id = ANY(%s) AND p.status = 'provavel'
-                ''', (visitante_id, posicoes_defesa))
+                    WHERE a.clube_id = %s AND a.posicao_id = ANY(%s) AND p.status = 'provavel' AND a.temporada = %s
+                ''', (visitante_id, posicoes_defesa, temporada_atual))
                 defesa_visitante = cursor.fetchone()
                 
                 cursor.execute('''
                     SELECT AVG(a.media_num) as media_ataque, COUNT(*) as total_jogadores
                     FROM acf_atletas a
                     JOIN provaveis_cartola p ON a.atleta_id = p.atleta_id
-                    WHERE a.clube_id = %s AND a.posicao_id IN (4, 5) AND p.status = 'provavel'
-                ''', (casa_id,))
+                    WHERE a.clube_id = %s AND a.posicao_id IN (4, 5) AND p.status = 'provavel' AND a.temporada = %s
+                ''', (casa_id, temporada_atual))
                 ataque_casa = cursor.fetchone()
                 
                 if defesa_casa and defesa_casa[0] and ataque_visitante and ataque_visitante[0]:

@@ -34,16 +34,16 @@ def calculate_team_sector_analysis(cursor, clube_id, posicoes, usar_provaveis_ca
             SELECT a.atleta_id, a.media_num, a.jogos_num, a.preco_num
             FROM acf_atletas a
             JOIN provaveis_cartola p ON a.atleta_id = p.atleta_id
-            WHERE a.clube_id = %s AND a.posicao_id = ANY(%s) AND p.status = 'provavel'
+            WHERE a.clube_id = %s AND a.posicao_id = ANY(%s) AND p.status = 'provavel' AND a.temporada = %s
             ORDER BY a.media_num DESC
-        ''', (clube_id, posicoes))
+        ''', (clube_id, posicoes, get_temporada_atual()))
     else:
         cursor.execute('''
             SELECT a.atleta_id, a.media_num, a.jogos_num, a.preco_num
             FROM acf_atletas a
-            WHERE a.clube_id = %s AND a.posicao_id = ANY(%s) AND a.status_id = 7
+            WHERE a.clube_id = %s AND a.posicao_id = ANY(%s) AND a.status_id = 7 AND a.temporada = %s
             ORDER BY a.media_num DESC
-        ''', (clube_id, posicoes))
+        ''', (clube_id, posicoes, get_temporada_atual()))
     
     jogadores = cursor.fetchall()
     
