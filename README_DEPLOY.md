@@ -13,7 +13,8 @@
    POSTGRES_USER=postgres
    POSTGRES_PASSWORD=gYlN0EredxHkxFm9BsftKvJ7
    POSTGRES_DB=cartola_manager
-   CALCULATION_INTERVAL_MINUTES=15
+   NORMAL_CALCULATION_INTERVAL_MINUTES=30
+   CLOSING_DAY_CALCULATION_INTERVAL_MINUTES=5
    DOCKERHUB_USERNAME=renaneunao  # Opcional, se diferente do padrão
    ```
 
@@ -27,7 +28,7 @@
 2. **Docker Compose**:
    - Usa a imagem do Docker Hub (não faz build local)
    - Lê variáveis de ambiente do arquivo `.env`
-   - Container roda automaticamente a cada 15 minutos (ou intervalo configurado)
+   - Container roda automaticamente a cada 30 minutos normalmente e a cada 5 minutos no dia de fechamento
 
 ## Deploy
 
@@ -53,5 +54,5 @@ O serviço executará:
 - **10 perfis de Peso do SG** (5 brandos + 5 agressivos)
 - Total: **20 perfis** calculados a cada ciclo
 - Tempo estimado: ~3-4 minutos por ciclo
-- Intervalo entre ciclos: 15 minutos (após término de cada ciclo)
+- Intervalo entre ciclos: 30 minutos normalmente e 5 minutos no dia de fechamento
 

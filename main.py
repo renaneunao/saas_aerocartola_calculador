@@ -2,13 +2,19 @@ import logging
 import sys
 from apscheduler.schedulers.blocking import BlockingScheduler
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from database import get_db_connection, close_db_connection, init_tables
 from api_cartola import fetch_status_data
 from calculo_peso_jogo import calculate_peso_jogo_for_profile
 from calculo_peso_jogo_rating import calculate_peso_jogo_for_profile_rating
 from calculo_peso_sg import calculate_peso_sg_for_profile
 from mostrar_rankings import mostrar_ranking_peso_jogo, mostrar_ranking_peso_sg
-from config import PERFIS_PESO_JOGO, PERFIS_PESO_SG, CALCULATION_INTERVAL_MINUTES
+from config import (
+    PERFIS_PESO_JOGO,
+    PERFIS_PESO_SG,
+    NORMAL_CALCULATION_INTERVAL_MINUTES,
+    CLOSING_DAY_CALCULATION_INTERVAL_MINUTES,
+)
 
 # Configurar logging
 logging.basicConfig(
@@ -20,10 +26,40 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+BRASILIA_TZ = ZoneInfo('America/Sao_Paulo')
+
+
+def _is_closing_day(status_data):
+    """Retorna True quando hoje é o dia de fechamento informado pela API."""
+    if not isinstance(status_data, dict):
+        return False
+
+    fechamento = status_data.get('fechamento')
+    if not isinstance(fechamento, dict):
+        return False
+
+    try:
+        fechamento_timestamp = fechamento.get('timestamp')
+        if fechamento_timestamp:
+            fechamento_date = datetime.fromtimestamp(
+                int(fechamento_timestamp), BRASILIA_TZ
+            ).date()
+        else:
+            fechamento_date = datetime(
+                int(fechamento['ano']),
+                int(fechamento['mes']),
+                int(fechamento['dia'])
+            ).date()
+
+        return datetime.now(BRASILIA_TZ).date() == fechamento_date
+    except (KeyError, TypeError, ValueError, OverflowError) as exc:
+        logger.warning(f"Não foi possível interpretar a data de fechamento: {exc}")
+        return False
+
 def execute_calculations(scheduler=None):
     """Executa todos os cálculos de peso do jogo e peso do SG para todos os perfis
     
-    Após a conclusão, agenda a próxima execução para 15 minutos após o término.
+    Após a conclusão, agenda a próxima execução conforme o dia de fechamento.
     
     Args:
         scheduler: Instância do scheduler (opcional, para agendar próxima execução)
@@ -33,18 +69,19 @@ def execute_calculations(scheduler=None):
     logger.info("=" * 80)
     
     start_time = datetime.now()
+    status_data = None
     
     # Obter rodada atual
     status_data = fetch_status_data()
     if not status_data:
         logger.error("Erro ao obter dados de status do Cartola. Abortando cálculos.")
-        _agendar_proxima_execucao(scheduler, start_time)
+        _agendar_proxima_execucao(scheduler, start_time, status_data)
         return
     
     rodada_atual = status_data.get('rodada_atual')
     if not rodada_atual:
         logger.error("Rodada atual não encontrada nos dados de status. Abortando cálculos.")
-        _agendar_proxima_execucao(scheduler, start_time)
+        _agendar_proxima_execucao(scheduler, start_time, status_data)
         return
     
     # Verificar se o mercado está aberto
@@ -53,7 +90,7 @@ def execute_calculations(scheduler=None):
     if status_mercado != 1:
         logger.info(f"Mercado está fechado (status: {status_mercado}). Pulando atualização das tabelas.")
         logger.info("Os cálculos serão retomados quando o mercado abrir novamente.")
-        _agendar_proxima_execucao(scheduler, start_time)
+        _agendar_proxima_execucao(scheduler, start_time, status_data)
         return
     
     logger.info(f"Rodada atual: {rodada_atual}")
@@ -63,7 +100,7 @@ def execute_calculations(scheduler=None):
     conn = get_db_connection()
     if not conn:
         logger.error("Erro ao conectar ao banco de dados. Abortando cálculos.")
-        _agendar_proxima_execucao(scheduler, start_time)
+        _agendar_proxima_execucao(scheduler, start_time, status_data)
         return
     
     try:
@@ -152,16 +189,22 @@ def execute_calculations(scheduler=None):
     finally:
         close_db_connection(conn)
         # Agendar próxima execução após o término (não importa se deu erro ou sucesso)
-        _agendar_proxima_execucao(scheduler, datetime.now())
+        _agendar_proxima_execucao(scheduler, datetime.now(), status_data)
 
-def _agendar_proxima_execucao(scheduler, fim_execucao_atual):
-    """Agenda a próxima execução para 15 minutos após o término da atual"""
+def _agendar_proxima_execucao(scheduler, fim_execucao_atual, status_data=None):
+    """Agenda a próxima execução conforme o dia de fechamento do mercado."""
     if scheduler is None:
         return
     
     from datetime import timedelta
     
-    proxima_execucao = fim_execucao_atual + timedelta(minutes=CALCULATION_INTERVAL_MINUTES)
+    closing_day = _is_closing_day(status_data)
+    interval_minutes = (
+        CLOSING_DAY_CALCULATION_INTERVAL_MINUTES
+        if closing_day
+        else NORMAL_CALCULATION_INTERVAL_MINUTES
+    )
+    proxima_execucao = fim_execucao_atual + timedelta(minutes=interval_minutes)
     
     # Remover job existente se houver
     try:
@@ -177,15 +220,27 @@ def _agendar_proxima_execucao(scheduler, fim_execucao_atual):
         args=[scheduler],  # Passar o scheduler para poder agendar a próxima
         id='calculo_pesos',
         name='Cálculo de Pesos do Jogo e SG',
-        replace_existing=True
+        replace_existing=True,
+        # Evita que um atraso momentâneo de scheduler remova o ciclo.
+        misfire_grace_time=None,
+        coalesce=True,
+        max_instances=1
     )
     
-    logger.info(f"Próxima execução agendada para: {proxima_execucao.strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(
+        f"Próxima execução agendada para: "
+        f"{proxima_execucao.strftime('%Y-%m-%d %H:%M:%S')} "
+        f"(intervalo: {interval_minutes} min, dia_fechamento: {closing_day})"
+    )
 
 def main():
     """Função principal que configura o agendador"""
     logger.info("Iniciando Calculador de Pesos do Jogo e SG")
-    logger.info(f"Intervalo entre ciclos: {CALCULATION_INTERVAL_MINUTES} minutos (após término de cada ciclo)")
+    logger.info(
+        "Intervalo entre ciclos: "
+        f"{NORMAL_CALCULATION_INTERVAL_MINUTES} min normalmente / "
+        f"{CLOSING_DAY_CALCULATION_INTERVAL_MINUTES} min no dia de fechamento"
+    )
     
     # Configurar agendador
     scheduler = BlockingScheduler(timezone='America/Sao_Paulo')
@@ -195,7 +250,7 @@ def main():
     logger.info("Executando cálculos iniciais...")
     execute_calculations(scheduler)
     
-    logger.info("Agendador configurado. O serviço executará um novo ciclo {} minutos após o término de cada ciclo anterior.".format(CALCULATION_INTERVAL_MINUTES))
+    logger.info("Agendador configurado com intervalo dinâmico por dia de fechamento.")
     logger.info("Pressione Ctrl+C para parar o serviço.")
     
     try:

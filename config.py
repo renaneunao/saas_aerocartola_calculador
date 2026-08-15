@@ -15,8 +15,10 @@ POSTGRES_CONFIG = {
 # Configurações de API
 API_URL_STATUS = "https://api.cartola.globo.com/mercado/status"
 
-# Configurações de agendamento
-CALCULATION_INTERVAL_MINUTES = int(os.getenv('CALCULATION_INTERVAL_MINUTES', '15'))
+# Configurações de agendamento. O intervalo é escolhido novamente após cada
+# ciclo, de acordo com o dia de fechamento informado pela API do Cartola.
+NORMAL_CALCULATION_INTERVAL_MINUTES = int(os.getenv('NORMAL_CALCULATION_INTERVAL_MINUTES', '30'))
+CLOSING_DAY_CALCULATION_INTERVAL_MINUTES = int(os.getenv('CLOSING_DAY_CALCULATION_INTERVAL_MINUTES', '5'))
 
 # Configurações de perfis
 # 10 perfis de peso do jogo: 5 brandos (raiz quarta 1/4) e 5 agressivos (raiz cúbica 1/3)

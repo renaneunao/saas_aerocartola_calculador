@@ -114,7 +114,7 @@ Transformar a aplicação atual de cálculo de escalação do Cartola FC em um p
 **Responsabilidade**: Coletar dados da API do Cartola FC
 
 **Funcionalidades:**
-- Fetch periódico de dados da API Cartola (a cada 5 minutos)
+- Fetch periódico de dados da API Cartola (30 minutos normalmente; 5 minutos no dia de fechamento)
 - Atualização de: atletas, clubes, partidas, prováveis
 - Armazenamento em PostgreSQL
 - Gerenciamento de rate limits

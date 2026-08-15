@@ -17,7 +17,8 @@
   - POSTGRES_USER ✓
   - POSTGRES_PASSWORD ✓
   - POSTGRES_DB ✓
-  - CALCULATION_INTERVAL_MINUTES ✓ (padrão: 15)
+  - NORMAL_CALCULATION_INTERVAL_MINUTES ✓ (padrão: 30)
+  - CLOSING_DAY_CALCULATION_INTERVAL_MINUTES ✓ (padrão: 5)
 - ✅ Imagem: `${DOCKERHUB_USERNAME:-renaneunao}/saas-cartola-calculador:latest`
 
 ### 3. GitHub Actions
