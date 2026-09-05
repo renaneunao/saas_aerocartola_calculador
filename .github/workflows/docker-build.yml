@@ -40,11 +40,73 @@ jobs:
         username: ${{ secrets.SSH_USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
+          set -Eeuo pipefail
           cd /root/apps/cartola-aero/cartola-aero-calculador
-          docker compose down --remove-orphans || true
-          docker compose pull
-          docker compose up -d
-          echo "Calculador deployed successfully!"
+
+          SERVICE="calculador"
+          CONTAINER="cartola-aero-calculador-container"
+          IMAGE="renaneunao/saas-cartola-calculador:latest"
+          HEALTH_TIMEOUT=120
+          HEALTH_URL=""
+          PREVIOUS_IMAGE="$(docker inspect --format '{{.Image}}' "$CONTAINER" 2>/dev/null || true)"
+
+          rollback() {
+            exit_code=$?
+            trap - EXIT
+            if [ "$exit_code" -ne 0 ]; then
+              echo "Deployment validation failed; rolling back."
+              docker compose rm -sf "$SERVICE" || true
+              if [ -n "$PREVIOUS_IMAGE" ]; then
+                docker tag "$PREVIOUS_IMAGE" "$IMAGE"
+                docker compose up -d --no-deps --force-recreate "$SERVICE" || true
+                echo "Rollback completed using image $PREVIOUS_IMAGE."
+              else
+                echo "No previous container image was found; rollback is unavailable."
+              fi
+            fi
+            exit "$exit_code"
+          }
+          trap rollback EXIT
+
+          docker compose pull "$SERVICE"
+          NEW_IMAGE="$(docker image inspect --format '{{.Id}}' "$IMAGE")"
+          test -n "$NEW_IMAGE"
+          echo "Pulled image $NEW_IMAGE; the current container was left running until this point."
+
+          docker compose up -d --no-deps --force-recreate "$SERVICE"
+
+          HEALTHY=0
+          DEADLINE=$((SECONDS + HEALTH_TIMEOUT))
+          while (( SECONDS < DEADLINE )); do
+            STATE="$(docker inspect --format '{{.State.Status}}' "$CONTAINER" 2>/dev/null || true)"
+            if [ "$STATE" = "exited" ] || [ "$STATE" = "dead" ]; then
+              docker logs --tail 80 "$CONTAINER" || true
+              exit 1
+            fi
+            if [ "$STATE" = "running" ]; then
+              HEALTH="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$CONTAINER")"
+              if [ "$HEALTH" = "healthy" ]; then
+                HEALTHY=1
+                break
+              elif [ "$HEALTH" = "unhealthy" ]; then
+                docker logs --tail 80 "$CONTAINER" || true
+                exit 1
+              elif [ "$HEALTH" = "none" ]; then
+                STABLE_UNTIL=$((SECONDS + 15))
+                while (( SECONDS < STABLE_UNTIL )); do
+                  [ "$(docker inspect --format '{{.State.Status}}' "$CONTAINER" 2>/dev/null || true)" = "running" ] || exit 1
+                  sleep 5
+                done
+                HEALTHY=1
+                break
+              fi
+            fi
+            sleep 5
+          done
+
+          [ "$HEALTHY" -eq 1 ]
+          trap - EXIT
+          echo "Calculador deployed and validated successfully!"
 
     - name: Verify deployment
       run: echo "Docker image built and pushed successfully to Docker Hub!"
