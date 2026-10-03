@@ -68,7 +68,7 @@ def execute_calculations(scheduler=None):
     logger.info("Iniciando rotina de cálculos")
     logger.info("=" * 80)
     
-    start_time = datetime.now()
+    start_time = datetime.now(BRASILIA_TZ)
     status_data = None
     
     # Obter rodada atual
@@ -179,7 +179,7 @@ def execute_calculations(scheduler=None):
             except Exception as e:
                 logger.error(f"[ERRO] Erro ao processar perfil {perfil['id']} de peso do SG: {e}", exc_info=True)
         
-        elapsed_time = datetime.now() - start_time
+        elapsed_time = datetime.now(BRASILIA_TZ) - start_time
         logger.info("=" * 80)
         logger.info(f"Rotina de cálculos concluída em {elapsed_time.total_seconds():.2f} segundos")
         logger.info("=" * 80)
@@ -189,7 +189,7 @@ def execute_calculations(scheduler=None):
     finally:
         close_db_connection(conn)
         # Agendar próxima execução após o término (não importa se deu erro ou sucesso)
-        _agendar_proxima_execucao(scheduler, datetime.now(), status_data)
+        _agendar_proxima_execucao(scheduler, datetime.now(BRASILIA_TZ), status_data)
 
 def _agendar_proxima_execucao(scheduler, fim_execucao_atual, status_data=None):
     """Agenda a próxima execução conforme o dia de fechamento do mercado."""
@@ -204,6 +204,13 @@ def _agendar_proxima_execucao(scheduler, fim_execucao_atual, status_data=None):
         if closing_day
         else NORMAL_CALCULATION_INTERVAL_MINUTES
     )
+    # BlockingScheduler interpreta run_date na timezone configurada. Garanta
+    # que o instante calculado carregue explicitamente o fuso de Brasília;
+    # um datetime UTC ingênuo deslocava cada ciclo em três horas.
+    if fim_execucao_atual.tzinfo is None:
+        fim_execucao_atual = fim_execucao_atual.replace(tzinfo=BRASILIA_TZ)
+    else:
+        fim_execucao_atual = fim_execucao_atual.astimezone(BRASILIA_TZ)
     proxima_execucao = fim_execucao_atual + timedelta(minutes=interval_minutes)
     
     # Remover job existente se houver
